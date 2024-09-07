@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	CMC_API_KEY = "API_KEY"
+	CMC_API_KEY_ENV = "CMC_API_KEY"
 )
 
 type CMCResponse struct {
@@ -40,8 +40,6 @@ type CryptoPredictor struct {
 }
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
-
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Print("Enter the cryptocurrency symbol (e.g., BTC, ETH): ")
@@ -80,7 +78,12 @@ func fetchCurrentData(cp *CryptoPredictor) error {
 		return fmt.Errorf("error creating request: %w", err)
 	}
 
-	req.Header.Set("X-CMC_PRO_API_KEY", CMC_API_KEY)
+	apiKey := os.Getenv(CMC_API_KEY_ENV)
+	if apiKey == "" {
+		return fmt.Errorf("CMC_API_KEY environment variable is not set")
+	}
+
+	req.Header.Set("X-CMC_PRO_API_KEY", apiKey)
 	req.Header.Set("Accept", "application/json")
 
 	client := &http.Client{}
@@ -94,7 +97,7 @@ func fetchCurrentData(cp *CryptoPredictor) error {
 		return fmt.Errorf("API returned error code: %d", resp.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("error reading response: %w", err)
 	}
@@ -122,15 +125,12 @@ func fetchCurrentData(cp *CryptoPredictor) error {
 }
 
 func predictPrice(cp *CryptoPredictor) (float64, error) {
-	// Simple prediction based on recent trends
 	shortTermTrend := cp.PercentChange24h / 100
 	longTermTrend := cp.PercentChange7d / 100
 
-	// Weighted average of short-term and long-term trends
 	weightedTrend := (shortTermTrend * 0.7) + (longTermTrend * 0.3)
 
-	// Add a small random factor to simulate market unpredictability
-	randomFactor := (rand.Float64() - 0.5) * 0.02 // Random value between -1% and 1%
+	randomFactor := (rand.Float64() - 0.5) * 0.02
 
 	prediction := cp.CurrentPrice * (1 + weightedTrend + randomFactor)
 
@@ -140,7 +140,6 @@ func predictPrice(cp *CryptoPredictor) (float64, error) {
 func displayResults(cp *CryptoPredictor, prediction float64) {
 	change := (prediction - cp.CurrentPrice) / cp.CurrentPrice * 100
 
-	// Create table data
 	headers := []string{"Metric", "Value"}
 	data := [][]string{
 		{"Symbol", cp.Symbol},
@@ -151,7 +150,6 @@ func displayResults(cp *CryptoPredictor, prediction float64) {
 		{"7d Change", fmt.Sprintf("%.2f%%", cp.PercentChange7d)},
 	}
 
-	// Print the table
 	printTable(headers, data)
 }
 
@@ -168,11 +166,9 @@ func printTable(headers []string, data [][]string) {
 		}
 	}
 
-	// Print table header
 	printTableRow(headers, colWidths)
 	printTableSeparator(colWidths)
 
-	// Print table data
 	for _, row := range data {
 		printTableRow(row, colWidths)
 	}
@@ -200,7 +196,7 @@ func showLoadingAnimation(done chan bool) {
 	for {
 		select {
 		case <-done:
-			fmt.Print("\r") // Clear the loading animation
+			fmt.Print("\r")
 			done <- true
 			return
 		default:
