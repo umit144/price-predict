@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	CMC_API_KEY_ENV = "CMC_API_KEY"
+	CMC_API_KEY = "CMC_API_KEY"
 )
 
 type CMCResponse struct {
@@ -78,7 +78,7 @@ func fetchCurrentData(cp *CryptoPredictor) error {
 		return fmt.Errorf("error creating request: %w", err)
 	}
 
-	apiKey := os.Getenv(CMC_API_KEY_ENV)
+	apiKey := os.Getenv(CMC_API_KEY)
 	if apiKey == "" {
 		return fmt.Errorf("CMC_API_KEY environment variable is not set")
 	}

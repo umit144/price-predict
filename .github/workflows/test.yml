@@ -34,7 +34,8 @@ jobs:
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             dep ensure
         fi
-
+      shell: bash
+      
     - name: Build
       run: go build -v .
 
